@@ -1,0 +1,38 @@
+on:
+  push:
+    branches: [all]
+  pull_request:
+    branches: [all]
+  workflow_dispatch: 
+
+jobs:
+  download_video:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Python
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install yt-dlp
+      
+      - name: Create video downloads directory
+        run: mkdir -p downloads
+      
+      - name: Download Youtube video
+        run: |
+          cd downloads
+          python3 ../utils/download_yt.py
+          # check if vid downloaded correctly
+          ls -la ./
+      
+      - name: Upload downloaded vids to artifact
+        uses: actions/upload-artifact
+        with:
+          name: download-video
+          path: downloads/
+          retention-days: 7
