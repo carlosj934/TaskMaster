@@ -1,0 +1,58 @@
+name: Security Scan
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  security-scan:
+    name: Security & Quality Check
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Check Python syntax
+      run: |
+        python -m py_compile $(find . -name "*.py" -not -path "./.git/*")
+
+    - name: Basic security checks
+      run: |
+        echo "Checking for potential issues..."
+        
+        # Check for hardcoded secrets
+        if grep -r -i -E "(password|secret|key|token)\s*=\s*['\"][^'\"]{8,}" --include="*.py" . ; then
+          echo "⚠️  Potential hardcoded secrets found!"
+          exit 1
+        fi
+        
+        # Check for dangerous functions
+        if grep -r -E "(eval|exec)\s*\(" --include="*.py" . ; then
+          echo "⚠️  Dangerous functions found!"
+          exit 1
+        fi
+        
+        echo "✅ Basic checks passed"
+
+    - name: CodeQL Analysis
+      uses: github/codeql-action/init@v3
+      with:
+        languages: python
+
+    - name: Run CodeQL
+      uses: github/codeql-action/analyze@v3
