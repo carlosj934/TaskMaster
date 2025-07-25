@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: taskmaster_postgres
+    environment:
+      POSTGRES_DB: taskmaster
+      POSTGRES_USER: taskmaster_user
+      POSTGRES_PASSWORD: taskmaster_pass
+      POSTGRES_INITDB_ARGS: "--auth-host=md5"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # Optional: for custom initialization
+    networks:
+      - taskmaster_network
+    restart: unless-stopped
+
+  fastapi:
+    build: 
+      context: ./fastapi
+      dockerfile: Dockerfile
+    container_name: taskmaster_api
+    environment:
+      DATABASE_URL: postgresql://taskmaster_user:taskmaster_pass@postgres:5432/taskmaster
+      ENVIRONMENT: production
+      DEBUG: "False"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    networks:
+      - taskmaster_network
+    restart: unless-stopped
+    volumes:
+      - ./fastapi/app:/app/app  # For development - remove in production
+
+volumes:
+  postgres_data:
+
+networks:
+  taskmaster_network:
+    driver: bridge

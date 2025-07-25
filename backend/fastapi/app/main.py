@@ -12,6 +12,7 @@ pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 @app.on_event("startup")
 async def startup():
     await database.connect()
+    metadata.create_all(engine)
 
 @app.on_event("shutdown")
 async def shutdown():
